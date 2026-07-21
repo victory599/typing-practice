@@ -6,7 +6,7 @@
 
 ## 2. 环境
 
-- Node.js（本机已装）
+- Node.js
 - 项目目录：`typing-practice`
 - 启动文件服务：`npm run dev:server`（或完整 `npm run dev`）
 - 前端构建：`npm run build`

@@ -403,4 +403,15 @@ app.listen(PORT, '127.0.0.1', () => {
   console.log(`[typing-practice] 配置目录（固定）: ${CONFIG_DIR}`)
   console.log(`[typing-practice] 默认数据目录: ${DEFAULT_DATA_DIR}`)
   console.log('[typing-practice] 关浏览器不会停止本服务，请在终端 Ctrl+C 结束')
+}).on('error', (err) => {
+  if (err && err.code === 'EADDRINUSE') {
+    console.error(
+      `[typing-practice] 端口 ${PORT} 已被占用。请先结束旧进程后重试，例如：\n` +
+        `  lsof -i :${PORT}\n` +
+        `  kill -9 <PID>`,
+    )
+  } else {
+    console.error('[typing-practice] 启动失败:', err)
+  }
+  process.exit(1)
 })

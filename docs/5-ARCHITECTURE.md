@@ -32,9 +32,10 @@ typing-practice/
 | 默认端口 | `8787`（前端开发服务器通过代理访问 `/api`） |
 | 绑定地址 | 仅 `127.0.0.1`，不对外网开放 |
 | 读写内容 | `config/settings.json`；数据目录下 `texts.json`、`results.json` |
-| 如何启动 | `npm run dev` 会并行启动文件服务与 Vite；也可单独 `npm run dev:server` |
+| 如何启动 | `npm run dev`（`scripts/dev.mjs` 先起文件服务再起 Vite，并打印浏览器地址与文件服务地址） |
 | 如何停止 | 在运行该命令的终端按 **Ctrl+C** |
 | 关浏览器会停吗 | **不会**。关掉网页后 Node 进程仍在，需手动结束终端进程 |
+| 端口占用 | 若 8787/5173 被旧进程占用会启动失败；用 `lsof -i :8787` 查找后结束进程 |
 
 正式业务数据（配置、词库、成绩）**不**写入 IndexedDB。若将来必须在浏览器暂存，优先 `sessionStorage`，其次带过期时间的 `localStorage`，不使用 IndexedDB 堆业务数据。
 
@@ -55,8 +56,7 @@ typing-practice/
 
 | 命令 | 作用 |
 |------|------|
-| `npm run dev` | 同时启动文件服务 + 前端开发服务器 |
+| `npm run dev` | 启动文件服务 + 前端，并打印浏览器访问地址 |
 | `npm run build` | 类型检查并打包前端 |
 | `npm run dev:server` | 仅启动文件服务 |
-
-更面向使用者的说明见根目录 `README.md`（不含技术细节）。
+| `npm start` | 生产模式：由文件服务托管 `dist`（需先 build） |
