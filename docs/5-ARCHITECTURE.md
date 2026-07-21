@@ -56,7 +56,10 @@ typing-practice/
 
 | 命令 | 作用 |
 |------|------|
+| `npm install` | 安装依赖。首次使用时必须执行 |
 | `npm run dev` | 启动文件服务 + 前端，并打印浏览器访问地址 |
-| `npm run build` | 类型检查并打包前端 |
 | `npm run dev:server` | 仅启动文件服务 |
+| `npm run build` | 类型检查并打包前端 |
 | `npm start` | 生产模式：由文件服务托管 `dist`（需先 build） |
+| `npm run clean` | 清理依赖（`node_modules`） + 构建产物（`dist`） |
+| `npm run clean:dist` | 清理构建产物（`dist`） |
