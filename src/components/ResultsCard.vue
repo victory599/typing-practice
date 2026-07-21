@@ -23,6 +23,7 @@
     <div class="actions">
       <button type="button" class="btn btn-primary" @click="$emit('retry')">再练一次</button>
       <button type="button" class="btn btn-secondary" @click="$emit('change')">换一篇</button>
+      <button type="button" class="btn btn-secondary" @click="$emit('library')">去词库</button>
     </div>
   </section>
 </template>
@@ -38,7 +39,7 @@ const props = defineProps<{
   metrics: TypingMetrics
 }>()
 
-defineEmits<{ retry: []; change: [] }>()
+defineEmits<{ retry: []; change: []; library: [] }>()
 
 const modeLabel = computed(() => {
   const map: Record<PracticeMode, string> = {

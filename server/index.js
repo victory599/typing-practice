@@ -98,10 +98,13 @@ async function ensureDataFiles(dataDir) {
   const textsPath = path.join(dataDir, 'texts.json')
   const resultsPath = path.join(dataDir, 'results.json')
 
+  // 仅在文件不存在时写入范文；已存在的空数组表示用户清空过，不再自动灌回
   let texts = await readJson(textsPath, null)
-  if (!texts || !Array.isArray(texts) || texts.length === 0) {
+  if (texts === null) {
     texts = SAMPLE_TEXTS
     await writeJsonAtomic(textsPath, texts)
+  } else if (!Array.isArray(texts)) {
+    await writeJsonAtomic(textsPath, [])
   }
 
   const results = await readJson(resultsPath, null)
@@ -309,6 +312,34 @@ app.put('/api/texts/:id', async (req, res) => {
     }
     await writeJsonAtomic(file, texts)
     res.json(texts[idx])
+  } catch (err) {
+    console.error(err)
+    res.status(500).json({ error: String(err.message || err) })
+  }
+})
+
+app.post('/api/texts/bulk-delete', async (req, res) => {
+  try {
+    const settings = await loadSettings()
+    const dataDir = resolveDataDir(settings)
+    const file = path.join(dataDir, 'texts.json')
+    const texts = await readJson(file, [])
+    const all = req.body?.all === true
+    const ids = Array.isArray(req.body?.ids) ? req.body.ids.map(String) : []
+
+    let next = texts
+    if (all) {
+      next = []
+    } else if (ids.length > 0) {
+      const idSet = new Set(ids)
+      next = texts.filter((t) => !idSet.has(t.id))
+    } else {
+      res.status(400).json({ error: '请提供要删除的 id 列表，或指定全部删除' })
+      return
+    }
+
+    await writeJsonAtomic(file, next)
+    res.json({ ok: true, deleted: texts.length - next.length })
   } catch (err) {
     console.error(err)
     res.status(500).json({ error: String(err.message || err) })

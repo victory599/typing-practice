@@ -26,9 +26,36 @@
       </div>
     </section>
 
+    <div v-if="texts.length" class="batch panel">
+      <label class="check">
+        <input type="checkbox" :checked="allSelected" :indeterminate.prop="partialSelected" @change="toggleSelectAll" />
+        全选
+      </label>
+      <div class="actions">
+        <button
+          type="button"
+          class="btn btn-danger"
+          :disabled="selectedIds.length === 0 || busy"
+          @click="removeSelected"
+        >
+          删除所选（{{ selectedIds.length }}）
+        </button>
+        <button type="button" class="btn btn-danger" :disabled="busy" @click="removeAll">
+          全部删除
+        </button>
+      </div>
+    </div>
+
     <ul class="list">
       <li v-for="t in texts" :key="t.id" class="panel item">
-        <div>
+        <label class="check item-check">
+          <input
+            type="checkbox"
+            :checked="selectedIds.includes(t.id)"
+            @change="toggleOne(t.id, ($event.target as HTMLInputElement).checked)"
+          />
+        </label>
+        <div class="body">
           <h3>{{ t.title }}</h3>
           <p class="preview">{{ preview(t.content) }}</p>
         </div>
@@ -38,21 +65,31 @@
         </div>
       </li>
     </ul>
+    <p v-if="!texts.length" class="muted">词库为空，可在上方添加文本。</p>
   </div>
 </template>
 
 <script setup lang="ts">
-import { onMounted, ref } from 'vue'
+import { computed, onMounted, ref } from 'vue'
 import * as api from '../api/client'
 import type { PracticeText } from '../types'
 
 const texts = ref<PracticeText[]>([])
+const selectedIds = ref<string[]>([])
 const title = ref('')
 const content = ref('')
 const editingId = ref<string | null>(null)
 const saving = ref(false)
+const busy = ref(false)
 const error = ref('')
 const okMsg = ref('')
+
+const allSelected = computed(
+  () => texts.value.length > 0 && selectedIds.value.length === texts.value.length,
+)
+const partialSelected = computed(
+  () => selectedIds.value.length > 0 && selectedIds.value.length < texts.value.length,
+)
 
 function preview(text: string) {
   const one = text.replace(/\s+/g, ' ').trim()
@@ -63,9 +100,25 @@ async function load() {
   error.value = ''
   try {
     texts.value = await api.listTexts()
+    // 去掉已不存在的勾选
+    const alive = new Set(texts.value.map((t) => t.id))
+    selectedIds.value = selectedIds.value.filter((id) => alive.has(id))
   } catch (e) {
     error.value = e instanceof Error ? e.message : '加载失败'
   }
+}
+
+function toggleOne(id: string, checked: boolean) {
+  if (checked) {
+    if (!selectedIds.value.includes(id)) selectedIds.value = [...selectedIds.value, id]
+  } else {
+    selectedIds.value = selectedIds.value.filter((x) => x !== id)
+  }
+}
+
+function toggleSelectAll(e: Event) {
+  const checked = (e.target as HTMLInputElement).checked
+  selectedIds.value = checked ? texts.value.map((t) => t.id) : []
 }
 
 function startEdit(t: PracticeText) {
@@ -114,6 +167,41 @@ async function remove(id: string) {
   }
 }
 
+async function removeSelected() {
+  if (selectedIds.value.length === 0) return
+  if (!confirm(`确定删除选中的 ${selectedIds.value.length} 篇文本吗？`)) return
+  busy.value = true
+  error.value = ''
+  try {
+    const r = await api.deleteTexts(selectedIds.value)
+    if (editingId.value && selectedIds.value.includes(editingId.value)) cancelEdit()
+    selectedIds.value = []
+    okMsg.value = `已删除 ${r.deleted} 篇`
+    await load()
+  } catch (e) {
+    error.value = e instanceof Error ? e.message : '批量删除失败'
+  } finally {
+    busy.value = false
+  }
+}
+
+async function removeAll() {
+  if (!confirm('确定清空全部词库吗？此操作不可撤销。')) return
+  busy.value = true
+  error.value = ''
+  try {
+    const r = await api.deleteAllTexts()
+    cancelEdit()
+    selectedIds.value = []
+    okMsg.value = `已全部删除（${r.deleted} 篇）`
+    await load()
+  } catch (e) {
+    error.value = e instanceof Error ? e.message : '全部删除失败'
+  } finally {
+    busy.value = false
+  }
+}
+
 onMounted(load)
 </script>
 
@@ -128,6 +216,29 @@ onMounted(load)
   font-size: 1.1rem;
 }
 
+.batch {
+  display: flex;
+  flex-wrap: wrap;
+  align-items: center;
+  justify-content: space-between;
+  gap: 0.75rem;
+  margin-bottom: 1rem;
+}
+
+.check {
+  display: inline-flex;
+  align-items: center;
+  gap: 0.4rem;
+  color: var(--ink-muted);
+  font-size: 0.92rem;
+  cursor: pointer;
+  user-select: none;
+}
+
+.item-check {
+  padding-top: 0.2rem;
+}
+
 .list {
   list-style: none;
   margin: 0;
@@ -140,8 +251,13 @@ onMounted(load)
 .item {
   display: flex;
   justify-content: space-between;
-  gap: 1rem;
+  gap: 0.75rem;
   align-items: flex-start;
+}
+
+.body {
+  flex: 1;
+  min-width: 0;
 }
 
 .preview {
@@ -158,9 +274,14 @@ onMounted(load)
   flex-shrink: 0;
 }
 
+.actions .btn:disabled {
+  opacity: 0.45;
+  cursor: not-allowed;
+}
+
 @media (max-width: 640px) {
   .item {
-    flex-direction: column;
+    flex-wrap: wrap;
   }
 }
 </style>

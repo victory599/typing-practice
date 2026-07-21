@@ -14,7 +14,7 @@
         :class="[
           'ch',
           statusClass(i),
-          { caret: i === caretIndex && !finished },
+          { caret: i === caretIndex && !finished, space: ch === ' ' },
         ]"
       >{{ displayChar(ch) }}</span>
     </div>
@@ -53,7 +53,7 @@ function statusClass(i: number) {
 }
 
 function displayChar(ch: string) {
-  if (ch === ' ') return '·'
+  // Keep spaces as blank space (not ·) so they don't look like periods
   if (ch === '\n') return '↵\n'
   return ch
 }
@@ -102,17 +102,27 @@ defineExpose({ focusSelf })
   border-radius: 3px;
 }
 
+/* Slightly wider so caret stays visible on blank spaces */
+.ch.space {
+  display: inline-block;
+  min-width: 0.55em;
+}
+
+/* 未输入：浅灰淡化；已正确：深绿加粗，对比更明显 */
 .ch.pending {
-  color: var(--ink-muted);
+  color: var(--ink-pending);
+  font-weight: 400;
 }
 
 .ch.correct {
   color: var(--correct);
+  font-weight: 600;
 }
 
 .ch.incorrect {
   color: var(--incorrect);
-  background: color-mix(in srgb, var(--incorrect) 12%, transparent);
+  font-weight: 600;
+  background: color-mix(in srgb, var(--incorrect) 14%, transparent);
   text-decoration: underline;
   text-decoration-thickness: 2px;
 }

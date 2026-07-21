@@ -8,9 +8,21 @@
     <div class="toolbar panel">
       <div class="field">
         <label for="textSel">练习文本</label>
-        <select id="textSel" v-model="selectedId" :disabled="running">
-          <option v-for="t in texts" :key="t.id" :value="t.id">{{ t.title }}</option>
-        </select>
+        <div class="text-pick">
+          <select id="textSel" v-model="selectedId" :disabled="running">
+            <option v-for="t in texts" :key="t.id" :value="t.id" :title="t.title">
+              {{ shortTitle(t.title) }}
+            </option>
+          </select>
+          <button
+            type="button"
+            class="btn btn-random"
+            :disabled="running || texts.length < 1"
+            @click="pickRandom"
+          >
+            随机
+          </button>
+        </div>
       </div>
       <div class="field">
         <label for="modeSel">模式</label>
@@ -40,7 +52,8 @@
         :mode="mode"
         :metrics="metrics"
         @retry="onRetry"
-        @change="onChange"
+        @change="onChangeText"
+        @library="goLibrary"
       />
     </template>
     <p v-else class="muted">词库为空，请先到「词库」添加文本。</p>
@@ -86,6 +99,20 @@ const {
 
 const running = computed(() => started.value && !finished.value)
 
+/** 下拉框标题过长时截断，避免撑破布局；完整标题放在 title 属性 */
+function shortTitle(title: string, max = 40) {
+  const one = title.replace(/\s+/g, ' ').trim()
+  return one.length > max ? `${one.slice(0, max)}…` : one
+}
+
+function pickRandom() {
+  if (texts.value.length < 1) return
+  const others = texts.value.filter((t) => t.id !== selectedId.value)
+  const pool = others.length > 0 ? others : texts.value
+  const pick = pool[Math.floor(Math.random() * pool.length)]
+  selectedId.value = pick.id
+}
+
 async function load() {
   loadError.value = ''
   try {
@@ -127,7 +154,15 @@ function onRetry() {
   areaRef.value?.focusSelf()
 }
 
-function onChange() {
+/** 结算页「换一篇」：随机换文并重新开始 */
+function onChangeText() {
+  pickRandom()
+  saved.value = false
+  reset()
+  areaRef.value?.focusSelf()
+}
+
+function goLibrary() {
   router.push('/library')
 }
 
@@ -141,13 +176,50 @@ onMounted(load)
 <style scoped>
 .toolbar {
   display: grid;
-  grid-template-columns: 1.4fr 1fr;
+  grid-template-columns: minmax(0, 1.4fr) minmax(0, 1fr);
   gap: 1rem;
   margin-bottom: 1.25rem;
+  max-width: 100%;
 }
 
 .toolbar .field {
   margin-bottom: 0;
+  min-width: 0;
+  max-width: 100%;
+}
+
+.text-pick {
+  display: flex;
+  gap: 0.5rem;
+  align-items: stretch;
+  min-width: 0;
+  max-width: 100%;
+}
+
+.text-pick select {
+  flex: 1 1 0;
+  width: 0;
+  min-width: 0;
+  max-width: 100%;
+  overflow: hidden;
+  text-overflow: ellipsis;
+}
+
+.btn-random {
+  background: var(--accent);
+  color: #fff;
+  border: none;
+  white-space: nowrap;
+  padding: 0.55rem 1rem;
+}
+
+.btn-random:hover:not(:disabled) {
+  background: #0c6559;
+}
+
+.btn-random:disabled {
+  opacity: 0.45;
+  cursor: not-allowed;
 }
 
 @media (max-width: 640px) {

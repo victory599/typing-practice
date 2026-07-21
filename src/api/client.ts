@@ -52,6 +52,20 @@ export function deleteText(id: string) {
   return request<{ ok: boolean }>(`/api/texts/${id}`, { method: 'DELETE' })
 }
 
+export function deleteTexts(ids: string[]) {
+  return request<{ ok: boolean; deleted: number }>('/api/texts/bulk-delete', {
+    method: 'POST',
+    body: JSON.stringify({ ids }),
+  })
+}
+
+export function deleteAllTexts() {
+  return request<{ ok: boolean; deleted: number }>('/api/texts/bulk-delete', {
+    method: 'POST',
+    body: JSON.stringify({ all: true }),
+  })
+}
+
 export function listResults() {
   return request<RunResult[]>('/api/results')
 }
