@@ -7,6 +7,15 @@
 
     <div class="toolbar panel">
       <div class="field">
+        <label for="modeSel">模式</label>
+        <select id="modeSel" v-model="mode" :disabled="running">
+          <option value="free">自由练完</option>
+          <option value="timed-1">限时 1 分钟</option>
+          <option value="timed-3">限时 3 分钟</option>
+          <option value="timed-5">限时 5 分钟</option>
+        </select>
+      </div>
+      <div class="field">
         <label for="textSel">练习文本</label>
         <div class="text-pick">
           <select id="textSel" v-model="selectedId" :disabled="running">
@@ -20,18 +29,9 @@
             :disabled="running || texts.length < 1"
             @click="pickRandom"
           >
-            随机
+            随机文本
           </button>
         </div>
-      </div>
-      <div class="field">
-        <label for="modeSel">模式</label>
-        <select id="modeSel" v-model="mode" :disabled="running">
-          <option value="free">自由练完</option>
-          <option value="timed-1">限时 1 分钟</option>
-          <option value="timed-3">限时 3 分钟</option>
-          <option value="timed-5">限时 5 分钟</option>
-        </select>
       </div>
     </div>
 
@@ -176,7 +176,7 @@ onMounted(load)
 <style scoped>
 .toolbar {
   display: grid;
-  grid-template-columns: minmax(0, 1.4fr) minmax(0, 1fr);
+  grid-template-columns: minmax(0, 1fr) minmax(0, 1.4fr);
   gap: 1rem;
   margin-bottom: 1.25rem;
   max-width: 100%;
@@ -211,6 +211,8 @@ onMounted(load)
   border: none;
   white-space: nowrap;
   padding: 0.55rem 1rem;
+  /* 相对同级控件仅略收垂直边距，缓和实心色的视觉膨胀 */
+  margin: 0.05rem 0;
 }
 
 .btn-random:hover:not(:disabled) {

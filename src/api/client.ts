@@ -30,6 +30,13 @@ export function migrateDataPath(path: string) {
   })
 }
 
+export function pickDirectory() {
+  return request<{ cancelled: boolean; path: string | null }>(
+    '/api/settings/pick-directory',
+    { method: 'POST' },
+  )
+}
+
 export function listTexts() {
   return request<PracticeText[]>('/api/texts')
 }

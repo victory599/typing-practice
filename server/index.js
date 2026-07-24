@@ -4,9 +4,13 @@
  */
 import cors from 'cors'
 import express from 'express'
+import { execFile } from 'node:child_process'
 import fs from 'node:fs/promises'
 import path from 'node:path'
+import { promisify } from 'node:util'
 import { fileURLToPath } from 'node:url'
+
+const execFileAsync = promisify(execFile)
 
 const __dirname = path.dirname(fileURLToPath(import.meta.url))
 const APP_ROOT = path.resolve(__dirname, '..')
@@ -195,6 +199,81 @@ app.put('/api/settings', async (req, res) => {
     }
     await saveSettings(next)
     res.json(next)
+  } catch (err) {
+    console.error(err)
+    res.status(500).json({ error: String(err.message || err) })
+  }
+})
+
+/**
+ * 弹出本机原生目录选择器，返回绝对路径。
+ * 浏览器无法直接拿到本地路径，故由 Node 文件服务代开对话框。
+ */
+async function pickDirectory() {
+  const platform = process.platform
+  if (platform === 'darwin') {
+    try {
+      const { stdout } = await execFileAsync('osascript', [
+        '-e',
+        'POSIX path of (choose folder with prompt "选择数据目录")',
+      ])
+      return stdout.trim().replace(/\/$/, '') || null
+    } catch (err) {
+      // 用户取消时 osascript 退出码为 1
+      if (err && (err.code === 1 || err.status === 1)) return null
+      throw err
+    }
+  }
+  if (platform === 'win32') {
+    const ps = [
+      'Add-Type -AssemblyName System.Windows.Forms',
+      '$d = New-Object System.Windows.Forms.FolderBrowserDialog',
+      '$d.Description = "选择数据目录"',
+      '$d.ShowNewFolderButton = $true',
+      'if ($d.ShowDialog() -eq [System.Windows.Forms.DialogResult]::OK) {',
+      '  [Console]::Out.Write($d.SelectedPath)',
+      '} else { exit 1 }',
+    ].join('; ')
+    try {
+      const { stdout } = await execFileAsync('powershell', [
+        '-NoProfile',
+        '-Command',
+        ps,
+      ])
+      return stdout.trim() || null
+    } catch {
+      return null
+    }
+  }
+  try {
+    const { stdout } = await execFileAsync('zenity', [
+      '--file-selection',
+      '--directory',
+      '--title=选择数据目录',
+    ])
+    return stdout.trim() || null
+  } catch {
+    try {
+      const { stdout } = await execFileAsync('kdialog', [
+        '--getexistingdirectory',
+        '.',
+        '选择数据目录',
+      ])
+      return stdout.trim() || null
+    } catch {
+      throw new Error('当前系统无法打开目录选择器，请手动填写路径')
+    }
+  }
+}
+
+app.post('/api/settings/pick-directory', async (_req, res) => {
+  try {
+    const dir = await pickDirectory()
+    if (!dir) {
+      res.json({ cancelled: true, path: null })
+      return
+    }
+    res.json({ cancelled: false, path: dir })
   } catch (err) {
     console.error(err)
     res.status(500).json({ error: String(err.message || err) })

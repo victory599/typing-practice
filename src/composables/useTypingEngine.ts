@@ -159,12 +159,12 @@ export function useTypingEngine(options: {
 
     const key = e.key
     if (key === 'Shift' || key === 'Control' || key === 'Alt' || key === 'Meta') return
-    if (key === 'Tab' || key === 'Escape' || key === 'Enter') {
+    if (key === 'Tab' || key === 'Escape') {
       e.preventDefault()
       return
     }
 
-    // 开始计时：第一次有效输入
+    // 开始计时：第一次有效输入（含 Enter 换行）
     if (!started.value) {
       if (key === 'Backspace') return
       started.value = true
@@ -182,8 +182,9 @@ export function useTypingEngine(options: {
       return
     }
 
-    // 只接受长度为 1 的可打印字符
-    if (key.length !== 1) return
+    // Enter 对应文本中的 \n；其余只接受长度为 1 的可打印字符
+    const typed = key === 'Enter' ? '\n' : key.length === 1 ? key : null
+    if (typed == null) return
     e.preventDefault()
 
     const i = caretIndex.value
@@ -191,7 +192,7 @@ export function useTypingEngine(options: {
 
     const expected = options.text.value[i]
     const next = [...statuses.value]
-    next[i] = key === expected ? 'correct' : 'incorrect'
+    next[i] = typed === expected ? 'correct' : 'incorrect'
     statuses.value = next
     caretIndex.value = i + 1
 

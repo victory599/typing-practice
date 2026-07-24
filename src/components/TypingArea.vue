@@ -8,15 +8,21 @@
   >
     <p v-if="!started && !finished" class="hint">点击此处开始打字</p>
     <div class="text" aria-live="polite">
-      <span
-        v-for="(ch, i) in chars"
-        :key="i"
-        :class="[
-          'ch',
-          statusClass(i),
-          { caret: i === caretIndex && !finished, space: ch === ' ' },
-        ]"
-      >{{ displayChar(ch) }}</span>
+      <template v-for="(ch, i) in chars" :key="i">
+        <span
+          :class="[
+            'ch',
+            statusClass(i),
+            {
+              caret: i === caretIndex && !finished,
+              space: ch === ' ',
+              newline: ch === '\n',
+            },
+          ]"
+        >{{ displayChar(ch) }}</span>
+        <!-- 真实断行：仅靠 span 内 \n 在部分浏览器下不会换行 -->
+        <br v-if="ch === '\n'" />
+      </template>
     </div>
   </div>
 </template>
@@ -53,8 +59,8 @@ function statusClass(i: number) {
 }
 
 function displayChar(ch: string) {
-  // Keep spaces as blank space (not ·) so they don't look like periods
-  if (ch === '\n') return '↵\n'
+  // 空格保持空白；换行显示 ↵，实际断行由模板里的 <br> 负责
+  if (ch === '\n') return '↵'
   return ch
 }
 
@@ -106,6 +112,13 @@ defineExpose({ focusSelf })
 .ch.space {
   display: inline-block;
   min-width: 0.55em;
+}
+
+/* 换行符标记贴在行末，断行由其后的 <br> 完成 */
+.ch.newline {
+  display: inline-block;
+  min-width: 0.7em;
+  opacity: 0.55;
 }
 
 /* 未输入：浅灰淡化；已正确：深绿加粗，对比更明显 */
