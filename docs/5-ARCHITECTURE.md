@@ -15,7 +15,7 @@ typing-practice/
 ├── server/           # 本机文件服务
 ├── src/              # Vue 前端
 │   ├── api/          # 调用 /api
-│   ├── components/   # 打字区、指标、结果卡
+│   ├── components/   # 打字区、指标、结果卡；StatsCharts（统计按需图表）
 │   ├── composables/  # 打字引擎
 │   ├── views/        # 练习 / 词库 / 统计 / 设置
 │   └── ...
@@ -56,7 +56,7 @@ typing-practice/
   - 练习：随机选题；结算「换一篇 / 去词库」
   - 词库：勾选批量删除、全部删除
   - 设置：数据路径确认迁移、恢复默认、无变更时按钮置灰
-  - 统计：成绩列表与清空
+  - 统计：成绩列表与清空；`StatsCharts` 按需生成模式饼图 / WPM·准确率条形图（Chart.js + vue-chartjs，仅前端可视化）
 
 ## 5. 常用脚本
 
