@@ -95,6 +95,9 @@
           </button>
         </div>
       </template>
+
+      <!-- 基于当前筛选全部记录；不自动生成，由组件内按钮触发 -->
+      <StatsCharts :results="filtered" />
     </template>
   </div>
 </template>
@@ -102,6 +105,7 @@
 <script setup lang="ts">
 import { computed, onMounted, ref, watch } from 'vue'
 import * as api from '../api/client'
+import StatsCharts from '../components/StatsCharts.vue'
 import type { PracticeMode, RunResult } from '../types'
 
 const PAGE_SIZE = 10
