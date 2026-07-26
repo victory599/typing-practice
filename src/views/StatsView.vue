@@ -55,6 +55,7 @@
                 <th>WPM</th>
                 <th>准确率</th>
                 <th>用时</th>
+                <th>操作</th>
               </tr>
             </thead>
             <tbody>
@@ -65,6 +66,16 @@
                 <td>{{ r.wpm }}</td>
                 <td>{{ r.accuracy }}%</td>
                 <td>{{ formatDuration(r.durationMs) }}</td>
+                <td>
+                  <button
+                    type="button"
+                    class="btn btn-secondary btn-share"
+                    :disabled="shareBusy"
+                    @click="shareRow(r)"
+                  >
+                    分享
+                  </button>
+                </td>
               </tr>
             </tbody>
           </table>
@@ -97,16 +108,31 @@
       </template>
 
       <!-- 基于当前筛选全部记录；不自动生成，由组件内按钮触发 -->
-      <StatsCharts :results="filtered" />
+      <StatsCharts
+        :results="filtered"
+        :filter-mode="modeFilter"
+        :filter-title="titleQuery"
+      />
     </template>
+
+    <ShareQrDialog
+      :open="shareOpen"
+      :share-url="shareUrl"
+      :expires-at="shareExpiresAt"
+      :loading="shareBusy"
+      :error="shareError"
+      @close="closeShare"
+    />
   </div>
 </template>
 
 <script setup lang="ts">
 import { computed, onMounted, ref, watch } from 'vue'
 import * as api from '../api/client'
+import ShareQrDialog from '../components/ShareQrDialog.vue'
 import StatsCharts from '../components/StatsCharts.vue'
 import type { PracticeMode, RunResult } from '../types'
+import { buildSinglePayload } from '../utils/sharePayload'
 
 const PAGE_SIZE = 10
 
@@ -125,6 +151,12 @@ const titleInput = ref('')
 /** 已确认的文本关键词，点搜索或回车后才更新 */
 const titleQuery = ref('')
 const modeFilter = ref<'' | PracticeMode>('')
+
+const shareOpen = ref(false)
+const shareBusy = ref(false)
+const shareUrl = ref('')
+const shareExpiresAt = ref<number | null>(null)
+const shareError = ref('')
 
 const filtered = computed(() => {
   const q = titleQuery.value.toLowerCase()
@@ -190,6 +222,35 @@ async function clearAll() {
     await load()
   } catch (e) {
     error.value = e instanceof Error ? e.message : '清空失败'
+  }
+}
+
+function closeShare() {
+  shareOpen.value = false
+  shareBusy.value = false
+  shareUrl.value = ''
+  shareExpiresAt.value = null
+  shareError.value = ''
+}
+
+async function shareRow(r: RunResult) {
+  shareOpen.value = true
+  shareBusy.value = true
+  shareUrl.value = ''
+  shareExpiresAt.value = null
+  shareError.value = ''
+  try {
+    const created = await api.createShare(
+      'single',
+      buildSinglePayload(r),
+      `single_${r.id}`,
+    )
+    shareUrl.value = `${window.location.origin}${created.urlPath}`
+    shareExpiresAt.value = created.expiresAt
+  } catch (e) {
+    shareError.value = e instanceof Error ? e.message : '创建分享失败'
+  } finally {
+    shareBusy.value = false
   }
 }
 
@@ -265,6 +326,16 @@ td:nth-child(4),
 td:nth-child(5),
 td:nth-child(6) {
   font-variant-numeric: tabular-nums;
+}
+
+.btn-share {
+  padding: 0.25rem 0.55rem;
+  font-size: 0.8rem;
+}
+
+.btn-share:disabled {
+  opacity: 0.45;
+  cursor: not-allowed;
 }
 
 .pager {

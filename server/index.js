@@ -5,6 +5,7 @@
 import cors from 'cors'
 import express from 'express'
 import { execFile } from 'node:child_process'
+import { randomUUID } from 'node:crypto'
 import fs from 'node:fs/promises'
 import path from 'node:path'
 import { promisify } from 'node:util'
@@ -18,6 +19,9 @@ const CONFIG_DIR = path.join(APP_ROOT, 'config')
 const CONFIG_FILE = path.join(CONFIG_DIR, 'settings.json')
 const DEFAULT_DATA_DIR = path.join(APP_ROOT, 'data')
 const PORT = 8787
+/** 分享快照默认 1 小时过期 */
+const SHARE_TTL_MS = 60 * 60 * 1000
+const SHARE_ID_RE = /^[a-zA-Z0-9_-]{8,64}$/
 
 const DEFAULT_SETTINGS = {
   dataPath: '',
@@ -159,6 +163,50 @@ async function migrateDataDir(oldDir, newDir) {
     /* ignore */
   }
   return { moved: true }
+}
+
+async function sharesDir() {
+  const settings = await loadSettings()
+  const dir = path.join(resolveDataDir(settings), 'shares')
+  await ensureDir(dir)
+  return dir
+}
+
+function shareFilePath(dir, id) {
+  if (!SHARE_ID_RE.test(id)) return null
+  return path.join(dir, `${id}.json`)
+}
+
+/** 启动时清空全部分享快照 */
+async function clearAllShares() {
+  const dir = await sharesDir()
+  const names = await fs.readdir(dir)
+  let n = 0
+  for (const name of names) {
+    if (!name.endsWith('.json')) continue
+    await fs.unlink(path.join(dir, name)).catch(() => {})
+    n += 1
+  }
+  if (n) console.log(`[typing-practice] 已清空分享快照 ${n} 个 → ${dir}`)
+}
+
+/** 删除已过期的分享 JSON（写时清扫） */
+async function purgeExpiredShares(dir) {
+  const now = Date.now()
+  const names = await fs.readdir(dir)
+  for (const name of names) {
+    if (!name.endsWith('.json')) continue
+    const fp = path.join(dir, name)
+    try {
+      const raw = await fs.readFile(fp, 'utf8')
+      const data = JSON.parse(raw)
+      if (typeof data.expiresAt === 'number' && data.expiresAt <= now) {
+        await fs.unlink(fp)
+      }
+    } catch {
+      /* skip unreadable */
+    }
+  }
 }
 
 const app = express()
@@ -499,6 +547,78 @@ app.delete('/api/results', async (_req, res) => {
   }
 })
 
+app.post('/api/shares', async (req, res) => {
+  try {
+    const kind = req.body?.kind
+    if (kind !== 'single' && kind !== 'stats') {
+      res.status(400).json({ error: 'kind 必须为 single 或 stats' })
+      return
+    }
+    const payload = req.body?.payload
+    if (!payload || typeof payload !== 'object') {
+      res.status(400).json({ error: '缺少 payload' })
+      return
+    }
+
+    const dir = await sharesDir()
+    await purgeExpiredShares(dir)
+
+    // 同一 sourceKey 重复分享则覆盖同一文件；未传则每次新建
+    const rawKey = String(req.body?.sourceKey || '').trim()
+    const id = SHARE_ID_RE.test(rawKey) ? rawKey : randomUUID().replace(/-/g, '')
+    const now = Date.now()
+    const record = {
+      id,
+      kind,
+      payload,
+      createdAt: now,
+      expiresAt: now + SHARE_TTL_MS,
+    }
+    const fp = shareFilePath(dir, id)
+    await writeJsonAtomic(fp, record)
+    res.status(201).json({
+      id,
+      urlPath: `/s/${id}`,
+      expiresAt: record.expiresAt,
+    })
+  } catch (err) {
+    console.error(err)
+    res.status(500).json({ error: String(err.message || err) })
+  }
+})
+
+app.get('/api/shares/:id', async (req, res) => {
+  try {
+    const id = String(req.params.id || '')
+    const dir = await sharesDir()
+    const fp = shareFilePath(dir, id)
+    if (!fp) {
+      res.status(404).json({ error: '分享不存在或已失效' })
+      return
+    }
+    let record
+    try {
+      const raw = await fs.readFile(fp, 'utf8')
+      record = JSON.parse(raw)
+    } catch (err) {
+      if (err && err.code === 'ENOENT') {
+        res.status(404).json({ error: '分享不存在或已失效' })
+        return
+      }
+      throw err
+    }
+    if (typeof record.expiresAt === 'number' && record.expiresAt <= Date.now()) {
+      await fs.unlink(fp).catch(() => {})
+      res.status(404).json({ error: '分享已过期' })
+      return
+    }
+    res.json(record)
+  } catch (err) {
+    console.error(err)
+    res.status(500).json({ error: String(err.message || err) })
+  }
+})
+
 // 生产模式可托管前端构建产物
 if (process.env.NODE_ENV === 'production') {
   const dist = path.join(APP_ROOT, 'dist')
@@ -506,6 +626,12 @@ if (process.env.NODE_ENV === 'production') {
   app.get('/{*path}', (_req, res) => {
     res.sendFile(path.join(dist, 'index.html'))
   })
+}
+
+try {
+  await clearAllShares()
+} catch (err) {
+  console.error('[typing-practice] 清空分享目录失败:', err)
 }
 
 app.listen(PORT, '127.0.0.1', () => {
