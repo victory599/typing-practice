@@ -217,7 +217,7 @@ function migrate() {
   const target = dataPathInput.value.trim()
   confirmDialog.value = {
     title: '确认迁移数据目录',
-    message: `将移动 texts.json 与 results.json 到新路径：\n${target}`,
+    message: `将数据文件移动到新路径：\n${target}`,
     onConfirm: () => runMigrate(target, '已迁移到：'),
   }
 }
@@ -226,7 +226,7 @@ function restoreDefault() {
   confirmDialog.value = {
     title: '确认恢复默认目录',
     message:
-      '将移动 texts.json 与 results.json 回应用根下默认位置。确定继续吗？',
+      '将数据文件移回应用根下的默认位置。确定继续吗？',
     onConfirm: () => runMigrate('', '已恢复默认目录：'),
   }
 }

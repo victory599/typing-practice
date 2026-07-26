@@ -155,6 +155,36 @@ async function migrateDataDir(oldDir, newDir) {
     }
     await moveFile(src, dest)
   }
+
+  // 一并迁移分享快照目录 shares/*.json
+  const oldShares = path.join(oldDir, 'shares')
+  const newShares = path.join(newDir, 'shares')
+  try {
+    await fs.access(oldShares)
+    await ensureDir(newShares)
+    const names = await fs.readdir(oldShares)
+    for (const name of names) {
+      if (!name.endsWith('.json')) continue
+      const src = path.join(oldShares, name)
+      const dest = path.join(newShares, name)
+      try {
+        await fs.access(dest)
+        await fs.unlink(dest)
+      } catch {
+        /* 目标不存在 */
+      }
+      await moveFile(src, dest)
+    }
+    try {
+      const leftShares = await fs.readdir(oldShares)
+      if (leftShares.length === 0) await fs.rmdir(oldShares)
+    } catch {
+      /* ignore */
+    }
+  } catch {
+    /* 旧目录无 shares，跳过 */
+  }
+
   // 尝试删除空的旧目录（失败可忽略）
   try {
     const left = await fs.readdir(oldDir)
