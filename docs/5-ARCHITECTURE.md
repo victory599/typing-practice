@@ -11,13 +11,15 @@
 typing-practice/
 ├── config/           # 固定配置目录（不可由用户改路径）
 ├── data/             # 默认数据目录（可迁移）
+│   └── shares/       # 分享短链快照（*.json；启动清空、可过期）
 ├── docs/             # 中文文档
 ├── server/           # 本机文件服务
 ├── src/              # Vue 前端
 │   ├── api/          # 调用 /api
-│   ├── components/   # 打字区、指标、结果卡；StatsCharts（统计按需图表）
+│   ├── components/   # 打字区、指标、结果卡；StatsCharts（统计按需图表）；ShareQrDialog（扫描分享）
 │   ├── composables/  # 打字引擎
-│   ├── views/        # 练习 / 词库 / 统计 / 设置
+│   ├── utils/        # 如 sharePayload（分享载荷）
+│   ├── views/        # 练习 / 词库 / 统计 / 设置 / 扫描分享页
 │   └── ...
 └── package.json
 ```
@@ -30,23 +32,24 @@ typing-practice/
 | 项目 | 说明 |
 |------|------|
 | 默认端口 | `8787`（前端开发服务器通过代理访问 `/api`） |
-| 绑定地址 | 仅 `127.0.0.1`，不对外网开放 |
-| 读写内容 | `config/settings.json`；数据目录下 `texts.json`、`results.json` |
-| 如何启动 | `npm run dev`（`scripts/dev.mjs` 先起文件服务再起 Vite，并打印浏览器地址与文件服务地址） |
+| 绑定地址 | 文件服务仅 `127.0.0.1`，不对外网开放；开发态 Vite 监听 `0.0.0.0`，同局域网手机可打开页面，经代理访问本机 API |
+| 读写内容 | `config/settings.json`；数据目录下 `texts.json`、`results.json`、`shares/*.json` |
+| 如何启动 | `npm run dev`（`scripts/dev.mjs` 先起文件服务再起 Vite，并打印本机 / 局域网浏览器地址与文件服务地址） |
 | 如何停止 | 在运行该命令的终端按 **Ctrl+C** |
 | 关浏览器会停吗 | **不会**。关掉网页后 Node 进程仍在，需手动结束终端进程 |
 | 端口占用 | 若 8787/5173 被旧进程占用会启动失败；用 `lsof -i :8787` 查找后结束进程 |
 
-正式业务数据（配置、词库、成绩）**不**写入 IndexedDB。若将来必须在浏览器暂存，优先 `sessionStorage`，其次带过期时间的 `localStorage`，不使用 IndexedDB 堆业务数据。
+正式业务数据（配置、词库、成绩）**不**写入 IndexedDB。若将来必须在浏览器暂存，优先 `sessionStorage`，其次带过期时间的 `localStorage`，不使用 IndexedDB 堆业务数据。扫描分享 PNG 仅在分享页前端生成，不落服务端磁盘。
 
 ## 3. 数据流
 
 1. 页面通过 `fetch('/api/...')` 访问接口（开发态由 Vite 代理到 `8787`）
 2. Node 服务读取固定 `config/settings.json`，解析当前数据目录（默认应用根下 `data/`，或用户迁移后的路径）
 3. 对 JSON 文件做读写；写入采用「临时文件再替换」降低损坏风险
-4. 迁移数据目录时移动 `texts.json` / `results.json`（跨盘则写入新位置再删除旧文件），不故意留双份
+4. 迁移数据目录时移动 `texts.json` / `results.json` / `shares/*.json`（跨盘则写入新位置再删除旧文件），不故意留双份
 5. 词库批量/全部删除：`POST /api/texts/bulk-delete`（body：`{ ids: [] }` 或 `{ all: true }`）
 6. 范文种子：仅当 `texts.json` **不存在**时写入；空数组表示用户已清空，不再自动灌回
+7. 扫码分享：`POST /api/shares` 写入快照（可选 `sourceKey` 覆盖同键文件）；`GET /api/shares/:id` 读取；启动时清空 `shares/`；过期懒删
 
 ## 4. 前端核心
 
@@ -56,7 +59,8 @@ typing-practice/
   - 练习：随机选题；结算「换一篇 / 去词库」
   - 词库：勾选批量删除、全部删除
   - 设置：数据路径确认迁移、恢复默认、无变更时按钮置灰
-  - 统计：成绩列表与清空；`StatsCharts` 按需生成模式饼图 / WPM·准确率条形图（Chart.js + vue-chartjs，仅前端可视化）
+  - 统计：成绩列表与清空；`StatsCharts` 按需生成模式饼图 / WPM·准确率条形图（Chart.js + vue-chartjs，仅前端可视化）；行分享 / 图表汇总分享经 `ShareQrDialog` 出二维码
+  - 分享页 `/s/:id`：精简布局；按快照渲染；`html-to-image` 生成图片供长按保存（`qrcode` 用于电脑端弹窗）
 
 ## 5. 常用脚本
 
