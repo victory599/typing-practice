@@ -1,20 +1,37 @@
 /**
  * 开发启动脚本：先起本机文件服务，再起 Vite，并同时打印两个访问地址。
+ * 前端监听 0.0.0.0（同 Wi‑Fi 手机可访问）；API 仍仅 127.0.0.1。
  */
 import { spawn } from 'node:child_process'
+import os from 'node:os'
 import path from 'node:path'
 import { fileURLToPath } from 'node:url'
 
 const root = path.resolve(path.dirname(fileURLToPath(import.meta.url)), '..')
 const API = 'http://127.0.0.1:8787'
 const WEB = 'http://127.0.0.1:5173'
+const WEB_PORT = 5173
+
+function lanAddresses() {
+  const out = []
+  for (const list of Object.values(os.networkInterfaces())) {
+    if (!list) continue
+    for (const net of list) {
+      if (net.family === 'IPv4' && !net.internal) out.push(net.address)
+    }
+  }
+  return out
+}
 
 function logBanner() {
   console.log('')
   console.log('========================================')
   console.log('  本地打字练习已启动')
-  console.log(`  浏览器访问: ${WEB}`)
-  console.log(`  本机文件服务: ${API}`)
+  console.log(`  本机浏览器: ${WEB}`)
+  for (const ip of lanAddresses()) {
+    console.log(`  局域网访问: http://${ip}:${WEB_PORT}`)
+  }
+  console.log(`  本机文件服务: ${API}（仅本机）`)
   console.log('  结束请按 Ctrl+C')
   console.log('========================================')
   console.log('')
@@ -87,7 +104,7 @@ logBanner()
 
 const web = run(
   path.join(root, 'node_modules', '.bin', 'vite'),
-  ['--host', '127.0.0.1', '--port', '5173', '--strictPort'],
+  ['--host', '0.0.0.0', '--port', String(WEB_PORT), '--strictPort'],
   'web',
 )
 children.push(web)

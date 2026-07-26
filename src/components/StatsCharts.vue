@@ -27,6 +27,14 @@
             清空图表
           </button>
         </template>
+        <button
+          type="button"
+          class="btn btn-secondary"
+          :disabled="!results.length || shareBusy"
+          @click="shareStats"
+        >
+          分享图表/汇总
+        </button>
       </div>
     </div>
 
@@ -56,6 +64,15 @@
         </div>
       </div>
     </div>
+
+    <ShareQrDialog
+      :open="shareOpen"
+      :share-url="shareUrl"
+      :expires-at="shareExpiresAt"
+      :loading="shareBusy"
+      :error="shareError"
+      @close="closeShare"
+    />
   </section>
 </template>
 
@@ -74,12 +91,17 @@ import {
 } from 'chart.js'
 import { computed, ref, watch } from 'vue'
 import { Bar, Pie } from 'vue-chartjs'
+import * as api from '../api/client'
 import type { PracticeMode, RunResult } from '../types'
+import { buildStatsPayload } from '../utils/sharePayload'
+import ShareQrDialog from './ShareQrDialog.vue'
 
 ChartJS.register(Title, Tooltip, Legend, ArcElement, CategoryScale, LinearScale, BarElement)
 
 const props = defineProps<{
   results: RunResult[]
+  filterMode?: '' | PracticeMode
+  filterTitle?: string
 }>()
 
 const maxBars = 20
@@ -106,6 +128,12 @@ const snapshotKey = ref('')
 const pieData = ref<ChartData<'pie'>>({ labels: [], datasets: [] })
 const wpmData = ref<ChartData<'bar'>>({ labels: [], datasets: [] })
 const accData = ref<ChartData<'bar'>>({ labels: [], datasets: [] })
+
+const shareOpen = ref(false)
+const shareBusy = ref(false)
+const shareUrl = ref('')
+const shareExpiresAt = ref<number | null>(null)
+const shareError = ref('')
 
 const pieOptions = computed<ChartOptions<'pie'>>(() => ({
   responsive: true,
@@ -206,6 +234,36 @@ function clearCharts() {
   pieData.value = { labels: [], datasets: [] }
   wpmData.value = { labels: [], datasets: [] }
   accData.value = { labels: [], datasets: [] }
+}
+
+function closeShare() {
+  shareOpen.value = false
+  shareBusy.value = false
+  shareUrl.value = ''
+  shareExpiresAt.value = null
+  shareError.value = ''
+}
+
+async function shareStats() {
+  if (!props.results.length) return
+  shareOpen.value = true
+  shareBusy.value = true
+  shareUrl.value = ''
+  shareExpiresAt.value = null
+  shareError.value = ''
+  try {
+    const payload = buildStatsPayload(props.results, {
+      mode: props.filterMode ?? '',
+      titleQuery: props.filterTitle ?? '',
+    })
+    const created = await api.createShare('stats', payload, 'stats_latest')
+    shareUrl.value = `${window.location.origin}${created.urlPath}`
+    shareExpiresAt.value = created.expiresAt
+  } catch (e) {
+    shareError.value = e instanceof Error ? e.message : '创建分享失败'
+  } finally {
+    shareBusy.value = false
+  }
 }
 
 watch(

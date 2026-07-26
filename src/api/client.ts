@@ -1,4 +1,13 @@
-import type { AppSettings, PracticeText, RunResult } from '../types'
+import type {
+  AppSettings,
+  CreateShareResponse,
+  PracticeText,
+  RunResult,
+  ShareKind,
+  ShareRecord,
+  ShareSinglePayload,
+  ShareStatsPayload,
+} from '../types'
 
 async function request<T>(url: string, init?: RequestInit): Promise<T> {
   const res = await fetch(url, {
@@ -86,4 +95,19 @@ export function saveResult(body: Omit<RunResult, 'id' | 'createdAt'>) {
 
 export function clearResults() {
   return request<{ ok: boolean }>('/api/results', { method: 'DELETE' })
+}
+
+export function createShare(
+  kind: ShareKind,
+  payload: ShareSinglePayload | ShareStatsPayload,
+  sourceKey?: string,
+) {
+  return request<CreateShareResponse>('/api/shares', {
+    method: 'POST',
+    body: JSON.stringify({ kind, payload, sourceKey }),
+  })
+}
+
+export function getShare(id: string) {
+  return request<ShareRecord>(`/api/shares/${id}`)
 }

@@ -5,6 +5,7 @@ dist/
 # 本机业务数据（不进版本库）
 data/texts.json
 data/results.json
+data/shares/
 tmp-data-migrate/
 
 # 本地配置中可能含绝对路径

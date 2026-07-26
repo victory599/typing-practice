@@ -1,6 +1,6 @@
 <template>
-  <div class="shell">
-    <header class="top">
+  <div class="shell" :class="{ minimal: isMinimal }">
+    <header v-if="!isMinimal" class="top">
       <router-link class="brand" to="/">TypeLocal</router-link>
       <nav class="nav">
         <router-link to="/">练习</router-link>
@@ -9,13 +9,18 @@
         <router-link to="/settings">设置</router-link>
       </nav>
     </header>
-    <main class="main">
+    <main class="main" :class="{ 'main-minimal': isMinimal }">
       <router-view />
     </main>
   </div>
 </template>
 
 <script setup lang="ts">
+import { computed } from 'vue'
+import { useRoute } from 'vue-router'
+
+const route = useRoute()
+const isMinimal = computed(() => Boolean(route.meta.minimal))
 </script>
 
 <style scoped>
@@ -74,5 +79,10 @@
   width: min(920px, 100%);
   margin: 0 auto;
   padding: 1.75rem 1.25rem 3rem;
+}
+
+.main-minimal {
+  width: min(480px, 100%);
+  padding-top: 1.25rem;
 }
 </style>
