@@ -94,6 +94,7 @@ import { Bar, Pie } from 'vue-chartjs'
 import * as api from '../api/client'
 import type { PracticeMode, RunResult } from '../types'
 import { buildStatsPayload } from '../utils/sharePayload'
+import { getShareOrigin } from '../utils/shareOrigin'
 import ShareQrDialog from './ShareQrDialog.vue'
 
 ChartJS.register(Title, Tooltip, Legend, ArcElement, CategoryScale, LinearScale, BarElement)
@@ -257,7 +258,8 @@ async function shareStats() {
       titleQuery: props.filterTitle ?? '',
     })
     const created = await api.createShare('stats', payload, 'stats_latest')
-    shareUrl.value = `${window.location.origin}${created.urlPath}`
+    const origin = await getShareOrigin()
+    shareUrl.value = `${origin}${created.urlPath}`
     shareExpiresAt.value = created.expiresAt
   } catch (e) {
     shareError.value = e instanceof Error ? e.message : '创建分享失败'

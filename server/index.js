@@ -7,6 +7,7 @@ import express from 'express'
 import { execFile } from 'node:child_process'
 import { randomUUID } from 'node:crypto'
 import fs from 'node:fs/promises'
+import os from 'node:os'
 import path from 'node:path'
 import { promisify } from 'node:util'
 import { fileURLToPath } from 'node:url'
@@ -245,6 +246,30 @@ app.use(express.json({ limit: '2mb' }))
 
 app.get('/api/health', (_req, res) => {
   res.json({ ok: true })
+})
+
+/** 本机局域网 IPv4，供分享二维码拼手机可打开的地址 */
+function lanAddresses() {
+  const out = []
+  for (const list of Object.values(os.networkInterfaces())) {
+    if (!list) continue
+    for (const net of list) {
+      const v4 = net.family === 'IPv4' || net.family === 4
+      if (v4 && !net.internal) out.push(net.address)
+    }
+  }
+  const score = (ip) => {
+    if (ip.startsWith('192.168.')) return 0
+    if (ip.startsWith('10.')) return 1
+    if (/^172\.(1[6-9]|2\d|3[0-1])\./.test(ip)) return 2
+    return 3
+  }
+  out.sort((a, b) => score(a) - score(b))
+  return out
+}
+
+app.get('/api/network', (_req, res) => {
+  res.json({ lanAddresses: lanAddresses() })
 })
 
 app.get('/api/settings', async (_req, res) => {

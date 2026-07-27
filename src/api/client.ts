@@ -111,3 +111,7 @@ export function createShare(
 export function getShare(id: string) {
   return request<ShareRecord>(`/api/shares/${id}`)
 }
+
+export function getLanAddresses() {
+  return request<{ lanAddresses: string[] }>('/api/network')
+}

@@ -133,6 +133,7 @@ import ShareQrDialog from '../components/ShareQrDialog.vue'
 import StatsCharts from '../components/StatsCharts.vue'
 import type { PracticeMode, RunResult } from '../types'
 import { buildSinglePayload } from '../utils/sharePayload'
+import { getShareOrigin } from '../utils/shareOrigin'
 
 const PAGE_SIZE = 10
 
@@ -245,7 +246,8 @@ async function shareRow(r: RunResult) {
       buildSinglePayload(r),
       `single_${r.id}`,
     )
-    shareUrl.value = `${window.location.origin}${created.urlPath}`
+    const origin = await getShareOrigin()
+    shareUrl.value = `${origin}${created.urlPath}`
     shareExpiresAt.value = created.expiresAt
   } catch (e) {
     shareError.value = e instanceof Error ? e.message : '创建分享失败'
