@@ -3,7 +3,7 @@
     <div class="modal-panel" role="dialog" aria-modal="true" aria-labelledby="share-qr-title">
       <h3 id="share-qr-title" class="modal-title">扫码分享到手机</h3>
       <p class="modal-body">
-        请用同一局域网（WiFi）下的手机扫描下方二维码，打开分享页后可保存图片。
+        请用<span class="emphasis">同一局域网（WiFi）</span>下的手机扫描下方二维码，打开分享页后可保存图片。
       </p>
 
       <p v-if="error" class="error-text">{{ error }}</p>
@@ -14,8 +14,8 @@
         <div class="qr-wrap">
           <img v-if="qrDataUrl" class="qr" :src="qrDataUrl" alt="分享二维码" />
         </div>
-        <p class="link-line">{{ shareUrl }}</p>
-        <p v-if="expiresAt" class="muted expire">
+        <p class="link-line emphasis">{{ shareUrl }}</p>
+        <p v-if="expiresAt" class="muted expire emphasis">
           有效至 {{ formatExpire(expiresAt) }}（重启服务后也会清空）
         </p>
       </template>
@@ -67,6 +67,10 @@ function formatExpire(ts: number) {
 </script>
 
 <style scoped>
+.emphasis {
+  color: orangered;
+}
+
 .center {
   text-align: center;
   margin: 1rem 0;
@@ -88,7 +92,6 @@ function formatExpire(ts: number) {
 .link-line {
   margin: 0 0 0.5rem;
   font-size: 0.8rem;
-  color: var(--ink-muted);
   word-break: break-all;
   text-align: center;
   line-height: 1.4;
