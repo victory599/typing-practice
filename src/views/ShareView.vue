@@ -477,42 +477,4 @@ onMounted(load)
   margin-top: 1rem;
   width: 100%;
 }
-
-.toast {
-  position: fixed;
-  top: 1.25rem;
-  left: 50%;
-  z-index: 1000;
-  max-width: min(92vw, 480px);
-  padding: 0.9rem 1.35rem;
-  border-radius: 12px;
-  font-size: 1rem;
-  line-height: 1.45;
-  box-shadow: var(--shadow);
-  pointer-events: none;
-  transform: translateX(-50%);
-}
-
-.toast-ok {
-  background: var(--accent);
-  color: #fff;
-  border: 1px solid #0c6559;
-}
-
-.toast-error {
-  background: var(--incorrect);
-  color: #fff;
-  border: 1px solid #a83232;
-}
-
-.toast-enter-active,
-.toast-leave-active {
-  transition: opacity 0.2s ease, transform 0.2s ease;
-}
-
-.toast-enter-from,
-.toast-leave-to {
-  opacity: 0;
-  transform: translateX(-50%) translateY(-8px);
-}
 </style>

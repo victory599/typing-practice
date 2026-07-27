@@ -67,39 +67,6 @@ function formatExpire(ts: number) {
 </script>
 
 <style scoped>
-.modal-mask {
-  position: fixed;
-  inset: 0;
-  z-index: 1100;
-  display: flex;
-  align-items: center;
-  justify-content: center;
-  padding: 1rem;
-  background: rgba(26, 43, 50, 0.4);
-}
-
-.modal-panel {
-  width: min(100%, 420px);
-  padding: 1.25rem 1.35rem;
-  border-radius: 14px;
-  background: var(--surface);
-  border: 1px solid var(--border);
-  box-shadow: var(--shadow);
-}
-
-.modal-title {
-  margin: 0 0 0.65rem;
-  font-family: var(--font-display);
-  font-size: 1.15rem;
-}
-
-.modal-body {
-  margin: 0 0 1rem;
-  color: var(--ink-muted);
-  font-size: 0.95rem;
-  line-height: 1.5;
-}
-
 .center {
   text-align: center;
   margin: 1rem 0;
@@ -131,11 +98,5 @@ function formatExpire(ts: number) {
   margin: 0 0 1rem;
   font-size: 0.85rem;
   text-align: center;
-}
-
-.modal-actions {
-  display: flex;
-  justify-content: flex-end;
-  gap: 0.5rem;
 }
 </style>
