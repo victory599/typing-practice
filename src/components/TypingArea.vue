@@ -5,9 +5,10 @@
     tabindex="0"
     @keydown="onKey"
     @click="focusSelf"
+    @wheel.prevent="onWheel"
   >
     <p v-if="!started && !finished" class="hint">点击此处开始打字</p>
-    <div class="text" aria-live="polite">
+    <div class="text" aria-live="polite" :style="{ fontSize: fontSize + 'rem' }">
       <template v-for="(ch, i) in chars" :key="i">
         <span
           :class="[
@@ -43,8 +44,22 @@ const emit = defineEmits<{
   keydown: [KeyboardEvent]
 }>()
 
+const FONT_KEY = 'typing-practice:area-font-size'
+const FONT_DEFAULT = 1.15
+const FONT_MIN = 0.8
+const FONT_MAX = 2.5
+const FONT_STEP = 0.05
+
 const rootEl = ref<HTMLElement | null>(null)
 const chars = computed(() => [...props.text])
+const fontSize = ref(loadFontSize())
+
+function loadFontSize() {
+  const raw = sessionStorage.getItem(FONT_KEY)
+  const n = raw != null ? Number(raw) : NaN
+  if (!Number.isFinite(n)) return FONT_DEFAULT
+  return Math.min(FONT_MAX, Math.max(FONT_MIN, n))
+}
 
 function focusSelf() {
   rootEl.value?.focus()
@@ -52,6 +67,12 @@ function focusSelf() {
 
 function onKey(e: KeyboardEvent) {
   emit('keydown', e)
+}
+
+function onWheel(e: WheelEvent) {
+  const next = fontSize.value + (e.deltaY < 0 ? FONT_STEP : -FONT_STEP)
+  fontSize.value = Math.round(Math.min(FONT_MAX, Math.max(FONT_MIN, next)) * 100) / 100
+  sessionStorage.setItem(FONT_KEY, String(fontSize.value))
 }
 
 function statusClass(i: number) {
@@ -98,7 +119,6 @@ defineExpose({ focusSelf })
 
 .text {
   font-family: var(--font-mono);
-  font-size: 1.15rem;
   line-height: 1.85;
   white-space: pre-wrap;
   word-break: break-word;
