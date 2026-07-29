@@ -1,7 +1,10 @@
 <template>
   <div class="shell" :class="{ minimal: isMinimal }">
     <header v-if="!isMinimal" class="top">
-      <router-link class="brand" to="/">TypeLocal</router-link>
+      <router-link class="brand" to="/">
+        <img class="brand-icon" src="/favicon.svg" alt="" width="28" height="28" />
+        TypeLocal
+      </router-link>
       <nav class="nav">
         <router-link to="/">练习</router-link>
         <router-link to="/library">词库</router-link>
@@ -45,12 +48,25 @@ const isMinimal = computed(() => Boolean(route.meta.minimal))
 }
 
 .brand {
+  display: inline-flex;
+  align-items: center;
+  gap: 0.45rem;
+  line-height: 1;
   font-family: var(--font-display);
   font-weight: 700;
   font-size: 1.25rem;
   letter-spacing: -0.02em;
   color: var(--ink);
   text-decoration: none;
+}
+
+.brand-icon {
+  display: block;
+  width: 1.15em;
+  height: 1.15em;
+  /* 该 SVG 上重下轻，略下移与大写字母顶齐 */
+  transform: translateY(0.10em);
+  flex-shrink: 0;
 }
 
 .nav {
